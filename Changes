@@ -1,4 +1,16 @@
 Revision history for Perl extension PDF::Report.
 
+1.10  Wed Apr 23 18:02:47 EDT 2003
+        - Added example scripts
+        - Cleaned up the perldoc 
+
+1.01  Wed Dec  4 15:12:16 EST 2002 (unreleased)
+	- Complete control of page footers.  (callback functions)
+        - Can open and add to existing PDF
+        - Color, underline, and indent added to addRawText()
+        - Fixed addParagragh()
+        - new drawBarcode() subroutine 
+        - new drawPieGraph() subroutine 
+
 1.00  Mon Sep 23 16:27:34 2002
 	- original version; created by Andy Orr

@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'		=> 'PDF::Report',
     'VERSION'	        => 1.00, 
-    'PREREQ_PM'		=> {PDF::API2 => '0.2.3.8'},
+    'PREREQ_PM'		=> {PDF::API2 => '0.3a9', Text::Roman => '3.01'},
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'Report.pm', # retrieve abstract from module
        AUTHOR     => 'Andrew Orr <aorr@cpan.org>') : ()),

@@ -1,0 +1,51 @@
+require "../Report.pm";
+
+my $pdf = new PDF::Report(
+                          PageSize => letter,
+                          PageOrientation => portrait,
+                          undef => undef
+                         );
+
+$pdf->newpage(1);
+$pdf->setFont('Helvetica-bold');
+$pdf->setSize(16);
+my ($width, $height) = $pdf->getPageDimensions();
+
+$pdf->centerString(0, $width, $height-40, "Barcodes");
+
+my $x = $width/2;
+my $y = $height-120; 
+my @types = qw(3of9 3of9ext 3of9chk 3of9extchk code128a code128b 
+               code128c ean128 ean13);
+
+my @codes = qw(010203045678909 010203045678909 010203045678909 
+               384318530034967067 384318530034967067 384318530034967067 
+               384318530034967067 384318530034967067 384318530034967067);
+
+$pdf->setFont('Helvetica');
+$pdf->setSize(10);
+
+my $next_line = 120;
+
+foreach my $nbr (0 .. $#types) {
+  if ($y < 50) {
+   $pdf->newpage(1);
+   $y = $height - 80;
+  }
+  if (($types[$nbr] eq '3of9ext') or ($types[$nbr] eq '3of9extchk')) {
+    $ext = 90506;
+  } 
+  $pdf->centerString(0, $width, $y+50, $types[$nbr]);
+  $pdf->drawBarcode($x, $y, 1, 1, 
+                   $types[$nbr], $codes[$nbr], $ext, 
+                   10, 10, 50, 10, ' ', '', 
+                   8, '');
+  $y-=$next_line;
+  $ext = "";
+}
+
+open(PDF, "> $0.pdf") or die "Error opening $0.pdf: $!\n";
+print PDF $pdf->Finish();
+close(PDF);
+
+exit;

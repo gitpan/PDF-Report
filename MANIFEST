@@ -1,7 +1,12 @@
-Changes
 Report.pm
-Makefile.PL
-MANIFEST
+Changes
 LICENSE
+MANIFEST
 README
+Makefile.PL
 test.pl
+examples/piegraph
+examples/paragraph
+examples/barcode
+examples/openpdf
+examples/openpdf

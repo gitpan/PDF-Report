@@ -1,0 +1,34 @@
+require "../Report.pm";
+
+my $pdf = new PDF::Report(
+                          PageSize => letter, 
+                          PageOrientation => portrait,
+                          undef => undef
+                         );
+
+$pdf->setFont('Helvetica');
+$pdf->setSize(12);
+my ($width, $height) = $pdf->getPageDimensions();
+my $y1 = $height - 30;
+my $x1 = 30;
+
+for (1 .. 4) {
+  $pdf->newpage();
+}
+
+open(PDF, "> $0.pdf") or die "Error opening $0.pdf: $!\n";
+print PDF $pdf->Finish(\&footer);
+close(PDF);
+
+exit;
+
+sub footer {
+  my $pages = $pdf->pages;
+
+  $pdf->setFont("Times-roman");
+  $pdf->setSize(8);
+  for (1 .. $pages) {
+    $pdf->openpage($_);
+    $pdf->centerString($x1, $width-30, 10, "$_ out of $pages pages");
+  }
+}
