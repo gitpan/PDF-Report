@@ -19,7 +19,7 @@ print "PDF::API2 Doesn't seem to be installed!\n\n"
 # the contents of the Makefile that is written.
 WriteMakefile(
     'NAME'		=> 'PDF::Report',
-    'VERSION'	        => 1.21, 
+    'VERSION'	        => 1.22, 
     'PREREQ_PM'		=> {PDF::API2 => '0.3r74'},
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'Report.pm', # retrieve abstract from module

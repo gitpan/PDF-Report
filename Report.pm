@@ -2,13 +2,13 @@
 # This is a wrapper for Alfred Reibenschuh's PDF::API2
 # Defines methods to create PDF reports
 # By: Andy Orr
-# Date: 01/25/2005
-# Version: 1.21
+# Date: 01/26/2005
+# Version: 1.22
 ###############################################################################
 
 package PDF::Report;
 
-$VERSION = "1.21"; 
+$VERSION = "1.22"; 
 
 =head1 PDF::Report 
 
@@ -354,10 +354,12 @@ wrapText() wraps $text within $width.
 
 sub wrapText {
   my $self = shift;
-  my $text = shift || '';
+  my $text = shift;
   my $width = shift;
 
-#  return $text if ($text =~ /\n/);  # We don't wrap text with carriage returns
+  $text = '' if !length($text);
+
+  return $text if ($text =~ /\n/);  # We don't wrap text with carriage returns
   return $text unless defined $width;  # If no width was specified, return text
 
   my $txt = $self->{page}->text;
