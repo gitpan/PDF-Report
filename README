@@ -1,5 +1,5 @@
-Dist version 1.22 
-=================
+Dist version 1.30
+==================
 
 PDF::Report is written around Alfred Reibenschuh's PDF::API2.  It provides
 methods to create a PDF document with text, lines, color and graphics. 
@@ -17,15 +17,19 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  PDF::API2 >= 0.3r74
+  PDF::API2 >= 0.40.00
 
-  NOTE:  You can use an older version of PDF::API2, but don't expect things 
-         like text color, text underlining, or the addParagraph routine to work 
-         correctly if at all!  Best to use a RELEASE and not an ALPHA or BETA.
+  NOTE:	As of PDF-Report 1.30, PDF-API2 versions less than 0.40.00 are 
+        unsupported. If you want to keep using an old PDF-API2, use 
+        PDF-Report 1.2x.  
 
 Optional (If you want to use roman numerals when numbering pages):
 
   Text::Roman >= 3.02
+
+EXAMPLES 
+
+  See the examples/ directory in the distribution.
 
 COPYRIGHT AND LICENSE
 

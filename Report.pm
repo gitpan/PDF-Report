@@ -2,13 +2,13 @@
 # This is a wrapper for Alfred Reibenschuh's PDF::API2
 # Defines methods to create PDF reports
 # By: Andy Orr
-# Date: 01/26/2005
-# Version: 1.22
+# Date: 03/04/2005 
+# Version: 1.30
 ###############################################################################
 
 package PDF::Report;
 
-$VERSION = "1.22"; 
+$VERSION = "1.30"; 
 
 =head1 PDF::Report 
 
@@ -105,11 +105,8 @@ sub new {
   }
 
   # Set the width and height of the page
-  my ($pageWidth, $pageHeight) = 
-    @{$PDF::API2::Page::pgsz{"\L$DEFAULTS{PageSize}"}};
-  ($pageWidth, $pageHeight) = 
-    @{$PDF::API2::Page::pgsz{"\L$defaults{PageSize}"}} 
-     if length($defaults{PageSize});
+  my ($x1, $y1, $pageWidth, $pageHeight) = 
+    PDF::API2::Util::page_size($DEFAULTS{PageSize});
 
   # Swap w and h if landscape
   if (lc($DEFAULTS{PageOrientation})=~/landscape/) {
@@ -160,7 +157,7 @@ sub new {
 
   # Default fonts
   $self->{font} = $self->{pdf}->corefont('Helvetica'); # Default font object
-  $self->{font}->encode('latin1');
+  #$self->{font}->encode('latin1');
 
   # Set the users options
   foreach my $key (keys %defaults) {
@@ -262,10 +259,15 @@ sub addRawText {
   $indent = undef if !length($indent);
 
   my $txt = $self->{page}->text;
-  $txt->font($self->{font}, $self->{size});
-  $txt->transform_rel(-translate => [$x, $y], -rotate => $rotate);
-  $txt->text_fancy($text, -color=>[$color], -underline=>$underline, 
-                          -indent=>$indent);
+#  $txt->font($self->{font}, $self->{size});
+#  $txt->transform_rel(-translate => [$x, $y], -rotate => $rotate);
+#  $txt->text($text, -color=>[$color], -underline=>$underline, 
+#                          -indent=>$indent);
+
+  $txt->textlabel($x, $y, $self->{font}, $self->{size}, $text,
+                  -rotate => $rotate,
+                  -color => $color, -underline=>$underline, -indent=>$indent);
+
 }
 
 =item PDF::API2 Removes all space between every word in the string you pass 
@@ -493,8 +495,14 @@ sub addParagraph {
   my $txt = $self->{page}->text;
   $txt->font($self->{font}, $self->{size});
 
-  $txt->paragraph($text, -x => $hPos, -y => $vPos, -w => $width, 
-                  -h => $height, -flindent => $indent, -lead => $lead);
+#  $txt->paragraph($text, -x => $hPos, -y => $vPos, -w => $width, 
+#                  -h => $height, -flindent => $indent, -lead => $lead, -rel => 1);
+
+#  0.40.x
+  $txt->lead($lead); # Line spacing
+  $txt->translate($hPos,$vPos);
+  $txt->paragraph($text, $width, $height, -align=>'justified');
+
   ($self->{hPos},$self->{vPos}) = $txt->textpos;
 }
 
@@ -568,7 +576,20 @@ Add image $file to the current page at position ($x, $y).
 sub addImg {
   my ( $self, $file, $x, $y ) = @_;
 
-  my $img = $self->{pdf}->image($file);
+  my %type = (jpeg => "jpeg", 
+              jpg  => "jpeg",
+              tif  => "tiff",
+              tiff => "tiff",
+              pnm  => "pnm",
+              gif  => "gif",
+              png  => "png",
+  ); 
+
+  $file =~ /\.(\w+)$/;
+  my $ext = $1;
+
+  my $sub = "image_$type{$ext}";
+  my $img = $self->{pdf}->$sub($file);
   my $gfx = $self->{page}->gfx;
 
   $gfx->image($img, $x, $y);
@@ -583,10 +604,12 @@ Add image $file to the current page at position ($x, $y) scaled to $scale.
 sub addImgScaled {
   my ( $self, $file, $x, $y, $scale ) = @_;
 
-  my $img = $self->{pdf}->image($file);
-  my $gfx = $self->{page}->gfx;
+#  my $img = $self->{pdf}->image($file);
+#  my $gfx = $self->{page}->gfx;
 
-  $gfx->image($img, $x, $y, $scale);
+#  $gfx->image($img, $x, $y, $scale);
+
+  $self->addImg($file, $x, $y);
 }
 
 =item $pdf->setGfxLineWidth($width);
@@ -838,9 +861,9 @@ barcode lingo and types so if I get any of this wrong, lemme know!
 This is a very flexible way to draw a barcode on your PDF document.  
 $x and $y represent the center of the barcode's position on the document.  
 $scale is the size of the entire barcode 1 being 1:1, which is all you'll 
-need most likely.  $type is the type of barcode which can be 3of9, 3of9ext, 
-3of9chk, 3of9extchk, code128a, code128b, code128c, ean128, or ean13.  $code is
-the alpha-numeric code which the barcode will represent.  $extn is the 
+need most likely.  $type is the type of barcode which can be codabar, 2of5int, 
+3of9, code128, or ean13.  $code is the alpha-numeric code which the barcode 
+will represent.  $extn is the 
 extension to the $code, where applicable.  $umzn is the upper mending zone and 
 $lmzn is the lower mending zone. $zone is the the zone or height of the bars. 
 $quzn is the quiet zone or the space between the frame and the barcode.  $spcr
@@ -872,7 +895,8 @@ sub drawBarcode {
   my $page = $self->{page};
   my $gfx  = $page->gfx;  
 
-  my $bar = $self->{pdf}->barcode(
+  my $bSub = "xo_$type";
+  my $bar = $self->{pdf}->$bSub(
                            -font => $self->{font},
                            -type => $type,
                            -code => $code,
@@ -887,7 +911,15 @@ sub drawBarcode {
                            -text => $text
                           );
 
-  $gfx->barcode($bar, $x, $y, $scale, $frame);
+#  $gfx->barcode($bar, $x, $y, $scale, $frame);
+  $gfx->save;
+  $gfx->linecap(0);
+  $gfx->transform( -translate => [$x, $y]);
+  $gfx->fillcolor('#ffffff');
+  $gfx->linewidth(0.1);
+  $gfx->fill;
+  $gfx->formimage($bar,0,0);
+  $gfx->restore;
 }
 
 =item $pdf->setFont($font);
