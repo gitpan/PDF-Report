@@ -1,5 +1,14 @@
 Revision history for Perl extension PDF::Report.
 
+1.21  Tue Jan 25 21:50:45 EST 2005
+        - Documentation corrections
+        - Added text height parameter to addText
+        - Corrected Makefile.PL
+  ---- patch from Kaare Rasmussen ----
+        - Fixed a typo
+        - Let PDF::API2 give us x and y after calling addParagraph
+        - saveAs subroutine
+
 1.20  Fri Oct 31 10:36:26 EST 2003
         - Added font caching
         - Added text rotation

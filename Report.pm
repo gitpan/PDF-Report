@@ -2,13 +2,13 @@
 # This is a wrapper for Alfred Reibenschuh's PDF::API2
 # Defines methods to create PDF reports
 # By: Andy Orr
-# Date: 10/31/2003
-# Version: 1.20
+# Date: 01/25/2005
+# Version: 1.21
 ###############################################################################
 
 package PDF::Report;
 
-$VERSION = "1.20"; 
+$VERSION = "1.21"; 
 
 =head1 PDF::Report 
 
@@ -159,7 +159,7 @@ sub new {
   } 
 
   # Default fonts
-  $self->{font} = $self->{pdf}->corefont('Helvetica'), # Default font object
+  $self->{font} = $self->{pdf}->corefont('Helvetica'); # Default font object
   $self->{font}->encode('latin1');
 
   # Set the users options
@@ -247,7 +247,7 @@ sub getPageDimensions {
    return($self->{PageWidth}, $self->{PageHeight});
 }
 
-=item $pdf->addRawText($text, $x, $y, $color, $underline, $indent);
+=item $pdf->addRawText($text, $x, $y, $color, $underline, $indent, $rotate);
 
 Add $text at position $x, $y with $color, $underline, $indent and/or $rotate. 
 
@@ -357,7 +357,7 @@ sub wrapText {
   my $text = shift || '';
   my $width = shift;
 
-  return $text if ($text =~ /\n/);  # We don't wrap text with carriage returns
+#  return $text if ($text =~ /\n/);  # We don't wrap text with carriage returns
   return $text unless defined $width;  # If no width was specified, return text
 
   my $txt = $self->{page}->text;
@@ -384,18 +384,18 @@ sub wrapText {
   return $newText;
 }
 
-=item $pdf->addText($text, $hPos, $textWidth); 
+=item $pdf->addText($text, $hPos, $textWidth, $textHeight); 
 
 Takes $text and prints it to the current page at $hPos.  You may just want 
 to pass this function $text if the text is "pre-wrapped" and setAddTextPos 
 has been called previously.  Pass a $hPos to change the position the text 
 will be printed on the page.  Pass a  $textWidth and addText will wrap the 
-text for you.
+text for you.  $textHeight controls the row height.
 
 =cut
 
 sub addText {
-  my ( $self, $text, $hPos, $textWidth )= @_;
+  my ( $self, $text, $hPos, $textWidth, $textHeight )= @_;
 
   my $txt = $self->{page}->text;
   $txt->font($self->{font}, $self->{size});
@@ -446,7 +446,7 @@ sub addText {
     my $thistextWidth = $txt->advancewidth($text);
 
     # If align ne 'left' (the default) then we need to recalc the xPos
-    # for this call to addRawText()  -- needs attention -- LHH
+    # for this call to addRawText()  -- needs attention
     my $xPos=$self->{hPos};
     if ($self->{align}=~ /^right$/i) {
       $xPos=$self->{hPos} - $thistextWidth;
@@ -471,13 +471,14 @@ sub addText {
         $self->{vPos} = $self->{PageHeight} - $self->{Ymargin} - $self->{size};
         $self->newpage;
       } else {
+        $textHeight = $self->{size} unless $textHeight;
         $self->{vPos} -= $self->{size} - $self->{linespacing};
       }
     }
   }
 }
 
-=item $pdf->addParagraph($text, $hPos, $vPos, $width, $height, $indent);
+=item $pdf->addParagraph($text, $hPos, $vPos, $width, $height, $indent, $lead);
 
 Add $text at ($hPos, $vPos) within $width and $height, with $indent.  
 $indent is the number of spaces at the beginning of the first line.
@@ -492,6 +493,7 @@ sub addParagraph {
 
   $txt->paragraph($text, -x => $hPos, -y => $vPos, -w => $width, 
                   -h => $height, -flindent => $indent, -lead => $lead);
+  ($self->{hPos},$self->{vPos}) = $txt->textpos;
 }
 
 # Backwards compatibility for that pesky typo
@@ -972,6 +974,29 @@ sub setInfo {
       $INFO{$key} = $info{$key};
     }
   }
+}
+
+=item $pdf->saveAs($fileName);
+
+Saves the document to a file.
+
+=cut
+
+=item B<Example:>
+
+       # Save the document as "file.pdf"
+        my $fileName = "file.pdf";
+       $pdf->saveAs($fileName);
+
+=cut
+
+sub saveAs {
+  my $self = shift;
+  my $fileName = shift;
+
+  $self->{pdf}->info(%INFO);
+  $self->{pdf}->saveas($fileName);
+  $self->{pdf}->end();
 }
 
 =item print $pdf->Finish(\&callback());

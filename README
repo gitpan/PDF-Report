@@ -1,4 +1,4 @@
-Dist version 1.20 
+Dist version 1.21 
 =================
 
 PDF::Report is written around Alfred Reibenschuh's PDF::API2.  It provides
@@ -21,8 +21,7 @@ This module requires these other modules and libraries:
 
   NOTE:  You can use an older version of PDF::API2, but don't expect things 
          like text color, text underlining, or the addParagraph routine to work 
-         correctly if at all!  Just edit the makefile to get this to install.  
-         Best to use a RELEASE and not an ALPHA or BETA.
+         correctly if at all!  Best to use a RELEASE and not an ALPHA or BETA.
 
 Optional (If you want to use roman numerals when numbering pages):
 
@@ -32,4 +31,4 @@ COPYRIGHT AND LICENSE
 
 "Perl Artistic License" (included with package)
 
-Copyright (C) 2003 Andrew Orr
+Copyright (C) 2005 Andrew Orr
