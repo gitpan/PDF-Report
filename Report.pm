@@ -2,13 +2,13 @@
 # This is a wrapper for Alfred Reibenschuh's PDF::API2
 # Defines methods to create PDF reports
 # By: Andy Orr
-# Date: 04/24/2003
-# Version: 1.10
+# Date: 10/31/2003
+# Version: 1.20
 ###############################################################################
 
 package PDF::Report;
 
-$VERSION = "1.10"; 
+$VERSION = "1.20"; 
 
 =head1 PDF::Report 
 
@@ -26,7 +26,6 @@ PDF::Report - A wrapper written for PDF::API2
 
 use strict;
 use PDF::API2;
-use Text::Roman;
 
 ### GLOBAL SECTION ############################################################
 # Sane defaults
@@ -96,7 +95,7 @@ B<Example:>
 
 # Create a new PDF document
 sub new {
-  my $class    = shift @_;
+  my $class    = shift;
   my %defaults = @_;
 
   foreach my $dflt (@parameterlist) {
@@ -106,9 +105,11 @@ sub new {
   }
 
   # Set the width and height of the page
-  my ($pageWidth, $pageHeight) = @{$PDF::API2::Page::pgsz{$DEFAULTS{PageSize}}};
-  ($pageWidth, $pageHeight) = @{$PDF::API2::Page::pgsz{$defaults{PageSize}}} 
-  			if length($defaults{PageSize});
+  my ($pageWidth, $pageHeight) = 
+    @{$PDF::API2::Page::pgsz{"\L$DEFAULTS{PageSize}"}};
+  ($pageWidth, $pageHeight) = 
+    @{$PDF::API2::Page::pgsz{"\L$defaults{PageSize}"}} 
+     if length($defaults{PageSize});
 
   # Swap w and h if landscape
   if (lc($DEFAULTS{PageOrientation})=~/landscape/) {
@@ -140,7 +141,13 @@ sub new {
               linespacing  => 0,
               FtrFontName  => 'Helvetica-Bold',
               FtrFontSize  => 11,
-              MARGIN_DEBUG => 0
+              MARGIN_DEBUG => 0,
+              PDF_API2_VERSION => $PDF::API2::VERSION,
+
+              ########################################################
+              # Cache for font object caching -- used by setFont() ###
+              ########################################################
+              __font_cache => {},
             };
 
   if (length($defaults{File})) {
@@ -189,7 +196,7 @@ sub newpage {
 
 =item $pdf->openpage($index);
 
-If using a pre-existing PDF document, use this to open the pages.
+If no index is specified, this will open the last page of the document.
 
 =cut
 
@@ -197,6 +204,11 @@ If using a pre-existing PDF document, use this to open the pages.
 sub openpage {
   my $self = shift;
   my $index = shift;
+  my $totpgs = $self->{pdf}->pages;
+
+  $index = $totpgs if (!defined $index or
+                       $index =~ /[^\d]/ or
+                       $index > $totpgs);
 
   $self->{page} = $self->{pdf}->openpage($index);
 }
@@ -207,10 +219,19 @@ sub importpage {
   my $sourceindex = shift;
   my $targetindex = shift;  # can be a page object
 
-  my $source = $self->{pdf}->open($sourcepdf); 
+#  my $source = $self->{pdf}->open($sourcepdf); 
 
-  $self->{page} = $self->{pdf}->importpage($source, $sourceindex,
+  $self->{page} = $self->{pdf}->importpage($sourcepdf, $sourceindex,
                                            $targetindex);
+}
+
+sub clonepage {
+  my $self = shift;
+  my $sourceindex = shift;
+  my $targetindex = shift;
+
+  $self->{page} = $self->{pdf}->clonepage($sourceindex, $targetindex); 
+
 }
 
 =item ($pagewidth, $pageheight) = $pdf->getPageDimensions();
@@ -228,18 +249,23 @@ sub getPageDimensions {
 
 =item $pdf->addRawText($text, $x, $y, $color, $underline, $indent);
 
-Add $text at position $x, $y with $color, $underline, and/or $indent. 
+Add $text at position $x, $y with $color, $underline, $indent and/or $rotate. 
 
 =cut
 
 # This positions string $text at $x, $y
 sub addRawText {
-  my ( $self, $text, $x, $y, $color, $underline, $indent ) = @_;
- 
+  my ( $self, $text, $x, $y, $color, $underline, $indent, $rotate ) = @_;
+
+  $color = undef if !length($color);
+  $underline = undef if !length($underline);
+  $indent = undef if !length($indent);
+
   my $txt = $self->{page}->text;
   $txt->font($self->{font}, $self->{size});
-  $txt->translate($x, $y);
-  $txt->text($text, -color=>[$color], -underline=>$underline, -indent=>$indent);
+  $txt->transform_rel(-translate => [$x, $y], -rotate => $rotate);
+  $txt->text_fancy($text, -color=>[$color], -underline=>$underline, 
+                          -indent=>$indent);
 }
 
 =item PDF::API2 Removes all space between every word in the string you pass 
@@ -299,8 +325,9 @@ Set the justification of the text.  Used by the addText function.
 =cut
 
 sub setAlign {
-  my ( $self, $align )= @_;
-  $align=lc($align);
+  my $self = shift;
+  my $align = lc(shift);
+
   if ($align=~m/^left$|^right$|^center$/) {
     $self->{align}=$align;
     $self->{hPos}=undef;        # Clear addText()'s tracking of hPos
@@ -326,8 +353,12 @@ wrapText() wraps $text within $width.
 =cut
 
 sub wrapText {
-  my ( $self, $text, $width )= @_;
+  my $self = shift;
+  my $text = shift || '';
+  my $width = shift;
+
   return $text if ($text =~ /\n/);  # We don't wrap text with carriage returns
+  return $text unless defined $width;  # If no width was specified, return text
 
   my $txt = $self->{page}->text;
   $txt->font($self->{font}, $self->{size});
@@ -446,14 +477,14 @@ sub addText {
   }
 }
 
-=item $pdf->addParagragh($text, $hPos, $vPos, $width, $height, $indent);
+=item $pdf->addParagraph($text, $hPos, $vPos, $width, $height, $indent);
 
 Add $text at ($hPos, $vPos) within $width and $height, with $indent.  
 $indent is the number of spaces at the beginning of the first line.
 
 =cut
 
-sub addParagragh {
+sub addParagraph {
   my ( $self, $text, $hPos, $vPos, $width, $height, $indent, $lead ) = @_;
 
   my $txt = $self->{page}->text;
@@ -461,6 +492,13 @@ sub addParagragh {
 
   $txt->paragraph($text, -x => $hPos, -y => $vPos, -w => $width, 
                   -h => $height, -flindent => $indent, -lead => $lead);
+}
+
+# Backwards compatibility for that pesky typo
+sub addParagragh {
+  my ( $self, $text, $hPos, $vPos, $width, $height, $indent, $lead ) = @_;
+
+  $self->addParagraph($text, $hPos, $vPos, $width, $height, $indent, $lead);
 }
 
 =item $pdf->centerString($a, $b, $yPos, $text); 
@@ -599,6 +637,7 @@ sub drawRect {
   my ( $self, $x1, $y1, $x2, $y2 ) = @_;
 
   my $gfx = $self->{page}->gfx;
+  $gfx->linewidth($self->{linewidth});
   $gfx->rectxy($x1, $y1, $x2, $y2);
   $gfx->stroke;
 }
@@ -856,7 +895,14 @@ Creates a new font object of type $font to be used in the page.
 sub setFont {
   my ( $self, $font, $size )= @_;
 
-  $self->{font} = $self->{pdf}->corefont($font);
+  if (exists $self->{__font_cache}->{$font}) {
+    $self->{font} = $self->{__font_cache}->{$font};
+  }
+  else {
+    $self->{font} = $self->{pdf}->corefont($font);
+    $self->{__font_cache}->{$font} = $self->{font};
+  }
+
   $self->{fontname} = $font;
 }
 
@@ -978,8 +1024,10 @@ sub gen_page_footer {
     my $txt;
     my $font;
     if ($type eq 'roman') {
+      require Text::Roman;
       $font = $self->{pdf}->corefont("Times-roman");
-      $txt = roman($i). " of " . roman($total);
+      $txt = Text::Roman::int2roman($i). " of " .
+             Text::Roman::int2roman($total);
     } else {
       $font = $self->{pdf}->corefont("Helvetica");
       $txt = "Page $i of $total";
@@ -988,7 +1036,7 @@ sub gen_page_footer {
     $txtobj->font($font, $size);
     $txtobj->translate($self->{Xmargin}, 8);
     $txtobj->text($txt);
-    my $size = $self->getStringWidth($DATE);
+    $size = $self->getStringWidth($DATE);
     $txtobj->translate($self->{PageWidth} - $self->{Xmargin} - $size, 8);
     $txtobj->text($DATE);
   }

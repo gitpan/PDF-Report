@@ -1,5 +1,11 @@
 Revision history for Perl extension PDF::Report.
 
+1.20  Fri Oct 31 10:36:26 EST 2003
+        - Added font caching
+        - Added text rotation
+        - Text::Roman is now optional
+        - Applied some helpful patches submitted by several users (thanks)
+
 1.10  Wed Apr 23 18:02:47 EDT 2003
         - Added example scripts
         - Cleaned up the perldoc 

@@ -28,9 +28,9 @@ my $text3=
         "The computer scientist, who'd listened carefully to all of this, then 
 commented, \"Yes, but where do you think the chaos came from?\"";
 
-$pdf->addParagragh($text1, 30, $height-70, $width-60, 50, 25);
-$pdf->addParagragh($text2, 30, $height-100, $width-60, 40, 25);
-$pdf->addParagragh($text3, 30, $height-120, $width-60, 40, 25);
+$pdf->addParagraph($text1, 30, $height-70, $width-60, 50, 25);
+$pdf->addParagraph($text2, 30, $height-100, $width-60, 40, 25);
+$pdf->addParagraph($text3, 30, $height-120, $width-60, 40, 25);
 
 open(PDF, "> $0.pdf") or die "Error opening $0.pdf: $!\n";
 print PDF $pdf->Finish();

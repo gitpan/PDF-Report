@@ -9,4 +9,5 @@ examples/piegraph
 examples/paragraph
 examples/barcode
 examples/openpdf
-examples/openpdf
+examples/footer
+examples/rotate

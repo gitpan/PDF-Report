@@ -12,23 +12,14 @@ my ($width, $height) = $pdf->getPageDimensions();
 my $y1 = $height - 30;
 my $x1 = 30;
 
-for (1 .. 4) {
-  $pdf->newpage();
-}
+$pdf->newpage();
+
+# Add some text with rotate, and let's throw in some color for the fun of it
+$pdf->addRawText("This is some text of a different color, rotated.", 
+                 $x1+200, $y1-300, 'green', '', '', 315);
 
 open(PDF, "> $0.pdf") or die "Error opening $0.pdf: $!\n";
-print PDF $pdf->Finish(\&footer);
+print PDF $pdf->Finish;
 close(PDF);
 
 exit;
-
-sub footer {
-  my $pages = $pdf->pages;
-
-  $pdf->setFont("Times-roman");
-  $pdf->setSize(8);
-  for (1 .. $pages) {
-    $pdf->openpage($_);
-    $pdf->centerString($x1, $width-30, 10, "$_ out of $pages pages");
-  }
-}
