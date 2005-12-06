@@ -3,12 +3,12 @@
 # Defines methods to create PDF reports
 # By: Andy Orr
 # Date: 03/04/2005 
-# Version: 1.30
+# Version: 1.31
 ###############################################################################
 
 package PDF::Report;
 
-$VERSION = "1.30"; 
+$VERSION = "1.31"; 
 
 =head1 PDF::Report 
 
@@ -26,6 +26,7 @@ PDF::Report - A wrapper written for PDF::API2
 
 use strict;
 use PDF::API2;
+use PDF::Table;
 
 ### GLOBAL SECTION ############################################################
 # Sane defaults
@@ -361,30 +362,28 @@ sub wrapText {
 
   $text = '' if !length($text);
 
-  return $text if ($text =~ /\n/);  # We don't wrap text with carriage returns
   return $text unless defined $width;  # If no width was specified, return text
 
   my $txt = $self->{page}->text;
   $txt->font($self->{font}, $self->{size});
 
-  my $ThisTextWidth=$txt->advancewidth($text);
-  return $text if ( $ThisTextWidth <= $width);
-
   my $widSpace = $txt->advancewidth('t');  # 't' closest width to a space
 
   my $currentWidth = 0;
   my $newText = "";
-  foreach ( split / /, $text ) {
-    my $strWidth = $txt->advancewidth($_);
-    if ( ( $currentWidth + $strWidth ) > $width ) {
-      $currentWidth = $strWidth + $widSpace;
-      $newText .= "\n$_ ";
-    } else {
-      $currentWidth += $strWidth + $widSpace;
-      $newText .= "$_ ";
+  foreach my $lines ( split /\n/, chomp($text) ) {
+    foreach my $words ( split / /, $text ) {
+      my $strWidth = $txt->advancewidth($words);
+      if ( ( $currentWidth + $strWidth ) > $width ) {
+        $currentWidth = $strWidth + $widSpace;
+        $newText .= "\n$words ";
+      } else {
+        $currentWidth += $strWidth + $widSpace;
+        $newText .= "$words ";
+      }
     }
+    $newText .= "\n";
   }
-
   return $newText;
 }
 
@@ -440,44 +439,18 @@ sub addText {
     $self->{vPos} = $self->{PageHeight} - $self->{Ymargin} - $self->{size};
   }
 
-  # If the text has no carrige returns we may need to wrap it for the user
-  if ( $text !~ /\n/ ) {
-    $text = $self->wrapText($text, $textWidth);
-  }
-
-  if ( $text !~ /\n/ ) {
-    # Determine the width of this text
-    my $thistextWidth = $txt->advancewidth($text);
-
-    # If align ne 'left' (the default) then we need to recalc the xPos
-    # for this call to addRawText()  -- needs attention
-    my $xPos=$self->{hPos};
-    if ($self->{align}=~ /^right$/i) {
-      $xPos=$self->{hPos} - $thistextWidth;
-    } elsif ($self->{align}=~ /^center$/i) {
-      $xPos=$self->{hPos} - $thistextWidth / 2;
+  # Always attempt to wrap text, just in case
+  $text = $self->wrapText($text, $textWidth);
+  
+  foreach my $line (split /\n/, $text) {
+    if (length($line)) {
+      $self->addRawText($line, $self->{hPos}, $self->{vPos});
     }
-    $self->addRawText($text,$xPos,$self->{vPos});
-
-    $thistextWidth = -1 * $thistextWidth if ($self->{align}=~ /^right$/i);
-    $thistextWidth = -1 * $thistextWidth / 2 if ($self->{align}=~ /^center$/i);
-    $self->{hPos} += $thistextWidth;
-  } else {
-    $text=~ s/\n/\0\n/g;                # This copes w/strings of only "\n"
-    my @lines= split /\n/, $text;
-    foreach ( @lines ) {
-      $text= $_;
-      $text=~ s/\0//;
-      if (length( $text )) {
-        $self->addRawText($text, $self->{hPos}, $self->{vPos});
-      }
-      if (($self->{vPos} - $self->{size}) < $self->{Ymargin}) {
-        $self->{vPos} = $self->{PageHeight} - $self->{Ymargin} - $self->{size};
-        $self->newpage;
-      } else {
-        $textHeight = $self->{size} unless $textHeight;
-        $self->{vPos} -= $self->{size} - $self->{linespacing};
-      }
+    if (($self->{vPos} - $self->{size}) < $self->{Ymargin}) {
+      $self->{vPos} = $self->{PageHeight} - $self->{Ymargin} - $self->{size};
+      $self->newpage;
+    } else {
+      $self->{vPos} -= $self->{size} - $self->{linespacing};
     }
   }
 }
@@ -1093,10 +1066,10 @@ sub gen_page_footer {
     }
     my $size = 10;
     $txtobj->font($font, $size);
-    $txtobj->translate($self->{Xmargin}, 8);
+    $txtobj->translate($self->{Xmargin}, $self->{Ymargin} - 10);
     $txtobj->text($txt);
     $size = $self->getStringWidth($DATE);
-    $txtobj->translate($self->{PageWidth} - $self->{Xmargin} - $size, 8);
+    $txtobj->translate($self->{PageWidth} - $self->{Xmargin} - $size, $self->{Ymargin} - 10);
     $txtobj->text($DATE);
   }
 }

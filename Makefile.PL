@@ -6,7 +6,7 @@ $PDF_API2_PREREQ = "0.40.00";
 # the contents of the Makefile that is written.
 WriteMakefile(
     'NAME'		=> 'PDF::Report',
-    'VERSION'	        => 1.30, 
+    'VERSION'	        => 1.31, 
     'PREREQ_PM'		=> {PDF::API2 => $PDF_API2_PREREQ},
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'Report.pm', # retrieve abstract from module

@@ -1,5 +1,12 @@
 Revision history for Perl extension PDF::Report.
 
+1.31  Fri Dec  6 13:54:58 EST 2005
+  ---- patch from Aaron Mitti ----
+    - Fixed footer being cut off on some printers.
+    - Changed wrapping and new line handling, now:
+      - Wraps lines with newlines already in them.
+      - Treats lines that need wrapping and not alike.
+
 1.30  Fri Mar  4 12:19:32 EST 2005
 	- Patched most of the subroutines for PDF-API2-0.40.xx
 	- Added an image example
