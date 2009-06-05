@@ -1,14 +1,17 @@
+use strict;
+use warnings;
 use ExtUtils::MakeMaker;
 
-$PDF_API2_PREREQ = "0.40.00";
-
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
 WriteMakefile(
-    'NAME'		=> 'PDF::Report',
-    'VERSION'	        => 1.31, 
-    'PREREQ_PM'		=> {PDF::API2 => $PDF_API2_PREREQ},
-    ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
-      (ABSTRACT_FROM => 'Report.pm', # retrieve abstract from module
-       AUTHOR     => 'Andrew Orr <aorr@cpan.org>') : ()),
+    NAME                => 'PDF::Report',
+    AUTHOR              => 'Andy Orr <aorr_at_cpan_dot_org>',
+    VERSION_FROM        => 'lib/PDF/Report.pm',
+    ABSTRACT_FROM       => 'lib/PDF/Report.pm',
+    PL_FILES            => {},
+    PREREQ_PM => {
+        'PDF::API2' => 0,
+        'Test::More' => 0,
+    },
+    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    clean               => { FILES => 'PDF-Report-*' },
 );

@@ -2,7 +2,7 @@
 # This is a wrapper for Alfred Reibenschuh's PDF::API2
 # Defines methods to create PDF reports
 # By: Andy Orr
-# Date: 03/04/2005 
+# Date: 06/05/2009
 # Version: 1.31
 ###############################################################################
 
@@ -26,7 +26,6 @@ PDF::Report - A wrapper written for PDF::API2
 
 use strict;
 use PDF::API2;
-use PDF::Table;
 
 ### GLOBAL SECTION ############################################################
 # Sane defaults
@@ -68,6 +67,8 @@ my @parameterlist=qw(
 
 =head1 METHODS
 
+=over 4
+
 =item my $pdf = new PDF::Report(%opts);
 
 	Creates a new pdf report object.  
@@ -104,10 +105,19 @@ sub new {
       $DEFAULTS{$dflt} = $defaults{$dflt}; # Overridden from user
     }
   }
-
-  # Set the width and height of the page
-  my ($x1, $y1, $pageWidth, $pageHeight) = 
+  
+  my $pageWidth;
+  my $pageHeight;
+  my $x1;
+  my $y1;
+  if ( ref $DEFAULTS{PageSize} eq "ARRAY" ) {
+    ($pageWidth, $pageHeight) = @{$DEFAULTS{PageSize}};
+  }
+  else {
+    # Set the width and height of the page
+    ($x1, $y1, $pageWidth, $pageHeight) =
     PDF::API2::Util::page_size($DEFAULTS{PageSize});
+  }
 
   # Swap w and h if landscape
   if (lc($DEFAULTS{PageOrientation})=~/landscape/) {
@@ -148,10 +158,9 @@ sub new {
               __font_cache => {},
             };
 
-  if (length($defaults{File})) {
+  if (defined $defaults{File} && length($defaults{File})) {
     $self->{pdf} = PDF::API2->open($defaults{File}) 
                      or die "$defaults{File} not found: $!\n";
-    
   } else {
     $self->{pdf} = PDF::API2->new();
   } 
@@ -255,9 +264,9 @@ Add $text at position $x, $y with $color, $underline, $indent and/or $rotate.
 sub addRawText {
   my ( $self, $text, $x, $y, $color, $underline, $indent, $rotate ) = @_;
 
-  $color = undef if !length($color);
-  $underline = undef if !length($underline);
-  $indent = undef if !length($indent);
+  $color = undef if defined $color && !length($color);
+  $underline = undef if defined $underline && !length($underline);
+  $indent = undef if defined $indent && !length($indent);
 
   my $txt = $self->{page}->text;
 #  $txt->font($self->{font}, $self->{size});
@@ -271,30 +280,32 @@ sub addRawText {
 
 }
 
-=item PDF::API2 Removes all space between every word in the string you pass 
+=pod
+
+PDF::API2 Removes all space between every word in the string you pass 
 and then rejoins each word with one space.  If you want to use a string with 
 more than one space between words for formatting purposes, you can either use 
 the hack below or change PDF::API2 (that's what I did ;).  The code below may
 or may not work according to what font you are using.  I used 2 \xA0 per space 
 because that worked for the Helvetica font I was using. 
 
-=item B<To use a fixed width string with more than one space between words, you can do something like:>
+B<To use a fixed width string with more than one space between words, you can do something like:>
 
-sub replaceSpace {
-  my $text = shift;
-  my $nbsp = "\xA0";
-  my $new = '';
-  my @words = split(/ /, $text);
-  foreach my $word (@words) {
-    if (length($word)) {
-      $new.=$word . ' ';
-    } else {
-      $new.=$nbsp . $nbsp;
+    sub replaceSpace {
+      my $text = shift;
+      my $nbsp = "\xA0";
+      my $new = '';
+      my @words = split(/ /, $text);
+      foreach my $word (@words) {
+        if (length($word)) {
+          $new.=$word . ' ';
+        } else {
+          $new.=$nbsp . $nbsp;
+        }
+      } 
+      chop($new);
+      return $new;
     }
-  } 
-  chop($new);
-  return $new;
-}
 
 =cut
 
@@ -362,28 +373,30 @@ sub wrapText {
 
   $text = '' if !length($text);
 
+  return $text if ($text =~ /\n/);  # We don't wrap text with carriage returns
   return $text unless defined $width;  # If no width was specified, return text
 
   my $txt = $self->{page}->text;
   $txt->font($self->{font}, $self->{size});
 
+  my $ThisTextWidth=$txt->advancewidth($text);
+  return $text if ( $ThisTextWidth <= $width);
+
   my $widSpace = $txt->advancewidth('t');  # 't' closest width to a space
 
   my $currentWidth = 0;
   my $newText = "";
-  foreach my $lines ( split /\n/, chomp($text) ) {
-    foreach my $words ( split / /, $text ) {
-      my $strWidth = $txt->advancewidth($words);
-      if ( ( $currentWidth + $strWidth ) > $width ) {
-        $currentWidth = $strWidth + $widSpace;
-        $newText .= "\n$words ";
-      } else {
-        $currentWidth += $strWidth + $widSpace;
-        $newText .= "$words ";
-      }
+  foreach ( split / /, $text ) {
+    my $strWidth = $txt->advancewidth($_);
+    if ( ( $currentWidth + $strWidth ) > $width ) {
+      $currentWidth = $strWidth + $widSpace;
+      $newText .= "\n$_ ";
+    } else {
+      $currentWidth += $strWidth + $widSpace;
+      $newText .= "$_ ";
     }
-    $newText .= "\n";
   }
+
   return $newText;
 }
 
@@ -435,22 +448,48 @@ sub addText {
   }
 
   # If $self->{vPos} is not set calculate it (on first text add)
-  if ( ($self->{vPos} == undef) || ($self->{vPos} == 0) ) {
+  if ( (!defined $self->{vPos} ) || ($self->{vPos} == 0) ) {
     $self->{vPos} = $self->{PageHeight} - $self->{Ymargin} - $self->{size};
   }
 
-  # Always attempt to wrap text, just in case
-  $text = $self->wrapText($text, $textWidth);
-  
-  foreach my $line (split /\n/, $text) {
-    if (length($line)) {
-      $self->addRawText($line, $self->{hPos}, $self->{vPos});
+  # If the text has no carrige returns we may need to wrap it for the user
+  if ( $text !~ /\n/ ) {
+    $text = $self->wrapText($text, $textWidth);
+  }
+
+  if ( $text !~ /\n/ ) {
+    # Determine the width of this text
+    my $thistextWidth = $txt->advancewidth($text);
+
+    # If align ne 'left' (the default) then we need to recalc the xPos
+    # for this call to addRawText()  -- needs attention
+    my $xPos=$self->{hPos};
+    if ($self->{align}=~ /^right$/i) {
+      $xPos=$self->{hPos} - $thistextWidth;
+    } elsif ($self->{align}=~ /^center$/i) {
+      $xPos=$self->{hPos} - $thistextWidth / 2;
     }
-    if (($self->{vPos} - $self->{size}) < $self->{Ymargin}) {
-      $self->{vPos} = $self->{PageHeight} - $self->{Ymargin} - $self->{size};
-      $self->newpage;
-    } else {
-      $self->{vPos} -= $self->{size} - $self->{linespacing};
+    $self->addRawText($text,$xPos,$self->{vPos});
+
+    $thistextWidth = -1 * $thistextWidth if ($self->{align}=~ /^right$/i);
+    $thistextWidth = -1 * $thistextWidth / 2 if ($self->{align}=~ /^center$/i);
+    $self->{hPos} += $thistextWidth;
+  } else {
+    $text=~ s/\n/\0\n/g;                # This copes w/strings of only "\n"
+    my @lines= split /\n/, $text;
+    foreach ( @lines ) {
+      $text= $_;
+      $text=~ s/\0//;
+      if (length( $text )) {
+        $self->addRawText($text, $self->{hPos}, $self->{vPos});
+      }
+      if (($self->{vPos} - $self->{size}) < $self->{Ymargin}) {
+        $self->{vPos} = $self->{PageHeight} - $self->{Ymargin} - $self->{size};
+        $self->newpage;
+      } else {
+        $textHeight = $self->{size} unless $textHeight;
+        $self->{vPos} -= $self->{size} - $self->{linespacing};
+      }
     }
   }
 }
@@ -549,6 +588,18 @@ Add image $file to the current page at position ($x, $y).
 sub addImg {
   my ( $self, $file, $x, $y ) = @_;
 
+  $self->addImgScaled($file, $x, $y, 1);
+}
+
+=item $pdf->addImgScaled($file, $x, $y, $scale); 
+
+Add image $file to the current page at position ($x, $y) scaled to $scale.
+
+=cut
+
+sub addImgScaled {
+  my ( $self, $file, $x, $y, $scale ) = @_;
+
   my %type = (jpeg => "jpeg", 
               jpg  => "jpeg",
               tif  => "tiff",
@@ -565,24 +616,7 @@ sub addImg {
   my $img = $self->{pdf}->$sub($file);
   my $gfx = $self->{page}->gfx;
 
-  $gfx->image($img, $x, $y);
-}
-
-=item $pdf->addImgScaled($file, $x, $y, $scale); 
-
-Add image $file to the current page at position ($x, $y) scaled to $scale.
-
-=cut
-
-sub addImgScaled {
-  my ( $self, $file, $x, $y, $scale ) = @_;
-
-#  my $img = $self->{pdf}->image($file);
-#  my $gfx = $self->{page}->gfx;
-
-#  $gfx->image($img, $x, $y, $scale);
-
-  $self->addImg($file, $x, $y);
+  $gfx->image($img, $x, $y, $scale);
 }
 
 =item $pdf->setGfxLineWidth($width);
@@ -891,7 +925,7 @@ sub drawBarcode {
   $gfx->fillcolor('#ffffff');
   $gfx->linewidth(0.1);
   $gfx->fill;
-  $gfx->formimage($bar,0,0);
+  $gfx->formimage($bar,0,0,$scale);
   $gfx->restore;
 }
 
@@ -1032,7 +1066,7 @@ sub Finish {
     &$callback($self, $total);
   # This will print a footer if no $callback is passed for backwards 
   # compatibility
-  } elsif ($callback !~ /none/i) {  
+  } elsif (defined $callback && $callback !~ /none/i) {
     &gen_page_footer($self, $total, $callback);
   }
 
@@ -1042,6 +1076,10 @@ sub Finish {
   return $out;
 }
 ### END GLOBAL SUBS ###########################################################
+
+=back
+
+=cut
 
 ### PRIVATE SUBS ##############################################################
 sub gen_page_footer {
@@ -1066,10 +1104,10 @@ sub gen_page_footer {
     }
     my $size = 10;
     $txtobj->font($font, $size);
-    $txtobj->translate($self->{Xmargin}, $self->{Ymargin} - 10);
+    $txtobj->translate($self->{Xmargin}, 8);
     $txtobj->text($txt);
     $size = $self->getStringWidth($DATE);
-    $txtobj->translate($self->{PageWidth} - $self->{Xmargin} - $size, $self->{Ymargin} - 10);
+    $txtobj->translate($self->{PageWidth} - $self->{Xmargin} - $size, 8);
     $txtobj->text($DATE);
   }
 }

@@ -19,7 +19,7 @@ This module requires these other modules and libraries:
 
   PDF::API2 >= 0.40.00
 
-  NOTE:	As of PDF-Report 1.31, PDF-API2 versions less than 0.40.00 are 
+  NOTE:	As of PDF-Report 1.30, PDF-API2 versions less than 0.40.00 are 
         unsupported. If you want to keep using an old PDF-API2, use 
         PDF-Report 1.2x.  
 
@@ -35,4 +35,4 @@ COPYRIGHT AND LICENSE
 
 "Perl Artistic License" (included with package)
 
-Copyright (C) 2005 Andrew Orr
+Copyright (C) 2009 Andrew Orr
