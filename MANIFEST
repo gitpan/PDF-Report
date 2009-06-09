@@ -4,7 +4,6 @@ Makefile.PL
 README
 lib/PDF/Report.pm
 t/00-load.t
-t/pod-coverage.t
 t/pod.t
 examples/barcode.pl
 examples/footer.pl

@@ -1,5 +1,8 @@
 Revision history for Perl extension PDF::Report.
 
+1.32  Tue Jun  9 11:47:16 EDT 2009
+  - Removed Test::Pod::Coverage from test.
+
 1.31  Fri Jun  5 11:06:31 EDT 2009
   - Applied patch for addImgScaled() - submitted by Gregor Herrmann (Debian 
     Perl Group)

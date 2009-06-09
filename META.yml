@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               PDF-Report
-version:            1.31
+version:            1.32
 abstract:           A wrapper written for PDF::API2
 author:
     - Andy Orr <aorr_at_cpan_dot_org>

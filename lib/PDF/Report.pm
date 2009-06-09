@@ -2,13 +2,13 @@
 # This is a wrapper for Alfred Reibenschuh's PDF::API2
 # Defines methods to create PDF reports
 # By: Andy Orr
-# Date: 06/05/2009
-# Version: 1.31
+# Date: 06/09/2009
+# Version: 1.32
 ###############################################################################
 
 package PDF::Report;
 
-$VERSION = "1.31"; 
+$VERSION = "1.32"; 
 
 =head1 PDF::Report 
 
