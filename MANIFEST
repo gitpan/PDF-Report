@@ -13,6 +13,7 @@ examples/image.pl
 examples/image.png
 examples/image.pnm
 examples/image.tif
+examples/openpdf.pl
 examples/paragraph.pl
 examples/piegraph.pl
 examples/rotate.pl

@@ -2,13 +2,13 @@
 # This is a wrapper for Alfred Reibenschuh's PDF::API2
 # Defines methods to create PDF reports
 # By: Andy Orr
-# Date: 06/09/2009
-# Version: 1.32
+# Date: 06/17/2009
+# Version: 1.33
 ###############################################################################
 
 package PDF::Report;
 
-$VERSION = "1.32"; 
+$VERSION = "1.33"; 
 
 =head1 PDF::Report 
 
@@ -43,16 +43,6 @@ my ( $day, $month, $year )= ( localtime( time ) )[3..5];
 my $DATE=sprintf "%02d/%02d/%04d", ++$month, $day, 1900 + $year;
 
 # Document info
-my %INFO = 
-          (
-            Creator => "None",
-            Producer => "None",
-            CreationDate => $DATE,
-            Title => "Untitled",
-            Subject => "None",
-            Author => "Auto-generated",
-          );
-
 my @parameterlist=qw(
         PageSize
         PageWidth
@@ -151,6 +141,14 @@ sub new {
               FtrFontSize  => 11,
               MARGIN_DEBUG => 0,
               PDF_API2_VERSION => $PDF::API2::VERSION,
+              INFO => {
+                Creator => "None",
+                Producer => "None",
+                CreationDate => $DATE,
+                Title => "Untitled",
+                Subject => "None",
+                Author => "Auto-generated",
+              },
 
               ########################################################
               # Cache for font object caching -- used by setFont() ###
@@ -1004,17 +1002,32 @@ sub setInfo {
   my ($self, %info) = @_;
 
   # Over-ride or define %INFO values
-  foreach my $key (keys %INFO) {
-    if (length($info{$key}) and ($info{$key} ne $INFO{$key})) {
-      $INFO{$key} = $info{$key};
+  foreach my $key (keys %{$self->{INFO}}) {
+    if (length($info{$key}) and ($info{$key} ne ${$self->{INFO}}{$key})) {
+      ${$self->{INFO}}{$key} = $info{$key};
     } 
   }
-  my @orig_keys = keys(%INFO);
+  my @orig_keys = keys(%{$self->{INFO}});
   foreach my $key (keys %info) {
     if (! grep /$key/, @orig_keys) {
-      $INFO{$key} = $info{$key};
+      ${$self->{INFO}}{$key} = $info{$key};
     }
   }
+}
+
+=item %infohash = $pdf->getInfo();
+
+Gets meta-data from the info structure of the document.
+Valid keys for %infohash: Creator, Producer, CreationDate,
+Title, Subject, Author, etc.
+
+=cut
+
+sub getInfo {
+  my $self = shift;
+
+  my %info = $self->{pdf}->info();
+  return %info;
 }
 
 =item $pdf->saveAs($fileName);
@@ -1035,7 +1048,7 @@ sub saveAs {
   my $self = shift;
   my $fileName = shift;
 
-  $self->{pdf}->info(%INFO);
+  $self->{pdf}->info(%{$self->{INFO}});
   $self->{pdf}->saveas($fileName);
   $self->{pdf}->end();
 }
@@ -1070,7 +1083,7 @@ sub Finish {
     &gen_page_footer($self, $total, $callback);
   }
 
-  $self->{pdf}->info(%INFO);
+  $self->{pdf}->info(%{$self->{INFO}});
   my $out = $self->{pdf}->stringify;
 
   return $out;
