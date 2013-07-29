@@ -1,5 +1,9 @@
 Revision history for Perl extension PDF::Report.
 
+1.36  Mon Jul 26 2013
+  - fixed bug #87407: Request: add optional 'align' parameter to addParagraph
+    applied pull request from Matteo Calderoni https://github.com/matteplus/perl-pdf-report/commit/e01b94324b03b889bd664653ee212a7ae9282208
+
 1.35  Sat Jul 13 2013
   - fixed bug 86908 handling uppercase image file extensions, applied fix
     by Vic Kovacs.

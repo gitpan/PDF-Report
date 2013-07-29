@@ -18,11 +18,11 @@ Defines methods to create PDF reports
 
 =head1 VERSION
 
- 1.35
+ 1.36
 
 =cut
 
-our $VERSION = "1.35";
+our $VERSION = "1.36";
 
 use strict;
 use PDF::API2;
@@ -533,8 +533,9 @@ $indent is the number of spaces at the beginning of the first line.
 =cut
 
 sub addParagraph {
-  my ( $self, $text, $hPos, $vPos, $width, $height, $indent, $lead ) = @_;
+  my ( $self, $text, $hPos, $vPos, $width, $height, $indent, $lead, $align ) = @_;
 
+  $align ||= 'justified';
   my $txt = $self->{page}->text;
   $txt->font($self->{font}, $self->{size});
 
@@ -544,7 +545,7 @@ sub addParagraph {
 #  0.40.x
   $txt->lead($lead); # Line spacing
   $txt->translate($hPos,$vPos);
-  $txt->paragraph($text, $width, $height, -align=>'justified');
+  $txt->paragraph($text, $width, $height, -align => $align);
 
   ($self->{hPos},$self->{vPos}) = $txt->textpos;
 }
